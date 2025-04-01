@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Figma URL to API URL Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-md p-6 w-full max-w-2xl">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Figma URL to API Endpoint Converter</h1>
+        
+        <form id="converter-form" class="mb-6">
+            <div class="mb-4">
+                <label for="figma-url" class="block text-gray-700 text-sm font-medium mb-2">Figma Design URL</label>
+                <input 
+                    type="text" 
+                    id="figma-url" 
+                    placeholder="https://www.figma.com/design/..." 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                >
+                <p class="text-sm text-gray-500 mt-1">Example: https://www.figma.com/design/GAYI2JzEHc8ogLsTEQYAaA/Product-Page?node-id=43777-15&t=tfKo8bhjamVxeKIF-4</p>
+            </div>
+            <button 
+                type="submit" 
+                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors duration-200"
+            >
+                Convert URL
+            </button>
+        </form>
+        
+        <div id="result-container" class="hidden">
+            <h2 class="text-lg font-semibold text-gray-800 mb-2">API Endpoint:</h2>
+            <div class="flex">
+                <input 
+                    type="text" 
+                    id="api-url" 
+                    class="flex-grow px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    readonly
+                >
+                <button 
+                    id="copy-btn" 
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-r-md transition-colors duration-200"
+                >
+                    Copy
+                </button>
+            </div>
+            <div id="copy-message" class="text-green-600 mt-2 text-sm hidden">Copied to clipboard!</div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('converter-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const figmaUrl = document.getElementById('figma-url').value.trim();
+            const apiUrl = convertToApiUrl(figmaUrl);
+            
+            if (apiUrl) {
+                document.getElementById('api-url').value = apiUrl;
+                document.getElementById('result-container').classList.remove('hidden');
+            } else {
+                alert('Invalid Figma URL. Please check and try again.');
+            }
+        });
+
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            const apiUrlInput = document.getElementById('api-url');
+            apiUrlInput.select();
+            document.execCommand('copy');
+            
+            const copyMessage = document.getElementById('copy-message');
+            copyMessage.classList.remove('hidden');
+            
+            setTimeout(() => {
+                copyMessage.classList.add('hidden');
+            }, 2000);
+        });
+
+        function convertToApiUrl(figmaUrl) {
+            try {
+                // Extract file key and node ID from the Figma URL
+                let fileKey = null;
+                let nodeId = null;
+                
+                // Check if it's a design URL
+                if (figmaUrl.includes('/design/')) {
+                    // Extract the file key from the URL path
+                    const fileKeyMatch = figmaUrl.match(/\/design\/([^\/\?]+)/);
+                    if (fileKeyMatch && fileKeyMatch[1]) {
+                        fileKey = fileKeyMatch[1];
+                    }
+                    
+                    // Extract node ID from query parameters
+                    const nodeIdMatch = figmaUrl.match(/node-id=([^&]+)/);
+                    if (nodeIdMatch && nodeIdMatch[1]) {
+                        nodeId = nodeIdMatch[1];
+                    }
+                } 
+                // Check if it's a file URL
+                else if (figmaUrl.includes('/file/')) {
+                    const fileKeyMatch = figmaUrl.match(/\/file\/([^\/\?]+)/);
+                    if (fileKeyMatch && fileKeyMatch[1]) {
+                        fileKey = fileKeyMatch[1];
+                    }
+                    
+                    const nodeIdMatch = figmaUrl.match(/node-id=([^&]+)/);
+                    if (nodeIdMatch && nodeIdMatch[1]) {
+                        nodeId = nodeIdMatch[1];
+                    }
+                }
+                
+                // Return null if we couldn't extract the file key
+                if (!fileKey) {
+                    return null;
+                }
+                
+                // Construct the API URL
+                let apiUrl = `https://api.figma.com/v1/files/${fileKey}`;
+                
+                // Add node ID if available
+                if (nodeId) {
+                    apiUrl += `?ids=${nodeId}`;
+                }
+                
+                return apiUrl;
+            } catch (error) {
+                console.error('Error parsing Figma URL:', error);
+                return null;
+            }
+        }
+    </script>
+</body>
+</html>
